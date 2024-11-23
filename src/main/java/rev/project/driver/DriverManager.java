@@ -5,60 +5,67 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 
-interface Driver{
+interface Driver {
     WebDriver createDriver();
 }
-class ChromeDriverSupplier implements Driver{
+
+class ChromeDriverSupplier implements Driver {
     @Override
-    public WebDriver createDriver(){
-        WebDriver driver=new ChromeDriver();
+    public WebDriver createDriver() {
+        WebDriver driver = new ChromeDriver();
         driver.manage().window().maximize();
         return driver;
     }
 }
-class FireFoxDriverSupplier implements Driver{
+
+class FireFoxDriverSupplier implements Driver {
     @Override
-    public WebDriver createDriver(){
-        WebDriver driver=new FirefoxDriver();
+    public WebDriver createDriver() {
+        WebDriver driver = new FirefoxDriver();
         driver.manage().window().maximize();
         return driver;
     }
 }
-class EdgeDriverSupplier implements Driver{
+
+class EdgeDriverSupplier implements Driver {
+    @Override
     public WebDriver createDriver() {
         WebDriver driver = new EdgeDriver();
         driver.manage().window().maximize();
         return driver;
     }
+}
 
-}
 public class DriverManager {
-private static BrowserType browserType;
-private static WebDriver driver;
-private DriverManager(){}
-    private static Driver getDriverSupply(BrowserType type){
-    switch (type){
-        case CHROME:
-            return new ChromeDriverSupplier();
-        case EDGE:
-            return new EdgeDriverSupplier();
-        case FIREFOX:
-            return new FireFoxDriverSupplier();
-        default:
-            throw new IllegalArgumentException("This browser not supported");
+    private static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
+
+    private DriverManager() {}
+
+    private static Driver getDriverSupply(BrowserType type) {
+        switch (type) {
+            case CHROME:
+                return new ChromeDriverSupplier();
+            case EDGE:
+                return new EdgeDriverSupplier();
+            case FIREFOX:
+                return new FireFoxDriverSupplier();
+            default:
+                throw new IllegalArgumentException("This browser is not supported");
+        }
     }
+
+    // Thread-local driver for each thread (useful in parallel testing)
+    public synchronized static WebDriver getDriver(BrowserType type) {
+        if (driver.get() == null) {
+            driver.set(getDriverSupply(type).createDriver());
+        }
+        return driver.get();
     }
-    // singelton call to driver
-    public synchronized static WebDriver getDriver(BrowserType type){
-    if(driver==null){
-        driver=getDriverSupply(type).createDriver();
+
+    public static void quitDriver() {
+        if (driver.get() != null) {
+            driver.get().quit();
+            driver.remove();
+        }
     }
-    return driver;
-    }
-public static void quitDriver(){
-    if(driver!=null){
-        driver.quit();
-        driver=null;
-    }
-}
 }
